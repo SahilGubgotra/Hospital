@@ -56,8 +56,8 @@ function SignUpForm() {
     try {
       console.log("Submitting form values:", values);
       
-      // Define the API URL
-      const API_URL = "http://localhost:8080/signup";
+      // Define the API URL using environment variable with fallback
+      const API_URL = `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/signup`;
       console.log("Sending request to:", API_URL);
       
       // Add request headers 
@@ -92,8 +92,21 @@ function SignUpForm() {
       console.error("Signup error:", error);
       let errorMessage = "Registration failed";
       
-      if (error.response && error.response.data) {
-        errorMessage = error.response.data.message || errorMessage;
+      // Detailed error logging
+      if (error.response) {
+        console.error("Error status:", error.response.status);
+        console.error("Error data:", error.response.data);
+        
+        if (error.response.data && typeof error.response.data === 'object') {
+          errorMessage = error.response.data.message || errorMessage;
+        } else if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        }
+      } else if (error.request) {
+        console.error("No response received:", error.request);
+        errorMessage = "No response from server. Backend may not be running.";
+      } else {
+        console.error("Error setting up request:", error.message);
       }
       
       toast.error(errorMessage);

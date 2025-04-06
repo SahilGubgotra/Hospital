@@ -9,7 +9,7 @@ export const loginAsync = createAsyncThunk(
   'login/loginAsync',
   async (credentials, { rejectWithValue }) => {
     try {
-      const response = await axios.post("http://localhost:8080/signin", credentials);
+      const response = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/signin`, credentials);
       console.log("Login API response:", response.data);
       const { token, is_admin } = response.data;
       // Format the token with Bearer prefix before storing
@@ -33,7 +33,7 @@ export const doctorloginAsync = createAsyncThunk(
   'login/doctorloginAsync',
   async (credentials, { rejectWithValue }) => {
     try {
-      const response = await axios.post("http://localhost:8080/doctor/signin", credentials);
+      const response = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/doctor/signin`, credentials);
       console.log(response)
       
       if (response.data.token !== undefined) {

@@ -44,7 +44,7 @@ const AppointmentForm = () => {
       const config = token ? { headers: { authorization: token } } : {};
       
       console.log("Fetching doctor with ID:", doctorId);
-      const response = await axios.get(`http://localhost:8080/public/doctor/${doctorId}`, config);
+      const response = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/public/doctor/${doctorId}`, config);
       
       if (response.data && response.data.data) {
         setDoctor(response.data.data);
@@ -124,7 +124,7 @@ const AppointmentForm = () => {
       try {
         const response = await axios({
           method: 'post',
-          url: 'http://localhost:8080/patient/appointment',
+          url: `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/patient/appointment`,
           data: payload,
           headers: {
             authorization: authToken
@@ -150,7 +150,7 @@ const AppointmentForm = () => {
           console.error("Error response data:", error.response.data);
           console.error("Error response headers:", error.response.headers);
           console.error("Request that was sent:", {
-            url: 'http://localhost:8080/patient/appointment',
+            url: `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/patient/appointment`,
             method: 'POST',
             data: payload,
             headers: { authorization: authToken }

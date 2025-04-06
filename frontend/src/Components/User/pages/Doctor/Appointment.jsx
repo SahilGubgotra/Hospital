@@ -44,7 +44,7 @@ const AppointmentPage = () => {
       console.log("Using token:", authToken); // Log token for debugging
       
       const response = await axios.get(
-        "http://localhost:8080/patient",
+        `${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/patient`,
         {
           headers: {
             authorization: authToken,

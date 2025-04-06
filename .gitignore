@@ -8,8 +8,8 @@ node_modules
 .pnp.js
 
 # environment variables
-.env
 /backend/.env
+# frontend/.env is included for Netlify configuration guidance
 
 # testing
 /coverage

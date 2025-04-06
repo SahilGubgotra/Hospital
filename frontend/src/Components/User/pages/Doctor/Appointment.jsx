@@ -1,243 +1,319 @@
-import * as React from "react";
-import { styled } from "@mui/material/styles";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell, { tableCellClasses } from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Paper from "@mui/material/Paper";
-import { getpatient } from "../../slices/patientSlice";
-import { useDispatch, useSelector } from "react-redux";
+import React, { useState, useEffect } from "react";
+import {
+  Container,
+  Typography,
+  Paper,
+  Grid,
+  Box,
+  Button,
+  CircularProgress,
+  Alert,
+  Divider,
+  Card,
+  CardContent,
+  Chip,
+} from "@mui/material";
+import { Link } from "react-router-dom";
 import axios from "axios";
-import KhaltiCheckout from "khalti-checkout-web";
-import moment from "moment";
-import { useNavigate } from "react-router-dom";
-
 import toast from "react-hot-toast";
+import { format } from "date-fns";
 
-import { Box } from "@mui/system";
-import { Grid, Typography } from "@mui/material";
+const AppointmentPage = () => {
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  useEffect(() => {
+    const token = localStorage.getItem("jwt");
+    if (token) {
+      setIsAuthenticated(true);
+      fetchAppointments(token);
+    } else {
+      setIsAuthenticated(false);
+      setLoading(false);
+    }
+  }, []);
 
-const StyledTableCell = styled(TableCell)(({ theme }) => ({
-  [`&.${tableCellClasses.head}`]: {
-    backgroundColor: theme.palette.common.black,
-    color: theme.palette.common.white,
-  },
-  [`&.${tableCellClasses.body}`]: {
-    fontSize: 14,
-  },
-}));
-
-const StyledTableRow = styled(TableRow)(({ theme }) => ({
-  "&:nth-of-type(odd)": {
-    backgroundColor: theme.palette.action.hover,
-  },
-
-  "&:last-child td, &:last-child th": {
-    border: 0,
-  },
-}));
-
-export default function Cart() {
-  const navigate=useNavigate()
-  const [id, setId] = React.useState(null);
-  const [report,setReport]=React.useState(false)
-
-  const [selectedInvoice, setSelectedInvoice] = React.useState(null);
-
-  const dispatch = useDispatch();
-  const tokens = localStorage.getItem("jwt");
-
-  const MakePayment = async (id) => {
+  const fetchAppointments = async (token) => {
     try {
-      const response = await axios.post(
-        "http://localhost:8080/patient/payment",
-        {
-          status: "paid",
-          _id: id,
-        },
+      console.log("Fetching appointments...");
+      
+      // Ensure token has Bearer prefix as required by backend
+      const authToken = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+      console.log("Using token:", authToken); // Log token for debugging
+      
+      const response = await axios.get(
+        "http://localhost:8080/patient",
         {
           headers: {
-            authorization: tokens,
+            authorization: authToken,
           },
         }
       );
 
-      console.log(response.data);
-      toast.success("payment successfull!!!");
-      setReport(true)
-      setId(null);
+      console.log("Appointments response:", response.data);
+      
+      // Check for the correct response format based on the backend
+      if (response.data && response.data.user_appointments) {
+        setAppointments(response.data.user_appointments);
+        toast.success("Appointments loaded successfully");
+      } else {
+        setError("Could not load appointments");
+        toast.error("Error loading appointments");
+      }
     } catch (error) {
-      console.log(error.message);
+      console.error("Error fetching appointments:", error);
+      
+      if (error.response) {
+        console.error("Error response:", error.response.data);
+        setError(error.response.data?.message || "Failed to load appointments");
+        toast.error(error.response.data?.message || "Failed to load appointments");
+      } else {
+        setError("Error connecting to server");
+        toast.error("Error connecting to server. Please try again later.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
-  const Config = {
-    publicKey: "test_public_key_2a7f2e2188034b8c8afe09bba670bd67",
-    productIdentity: "123766",
-    productName: "My Ecommerce Store",
-    productUrl: "http://localhost:3000",
-    eventHandler: {
-      onSuccess(payload) {
-        console.log(payload);
 
-        MakePayment(id);
-      },
-      onError(error) {
-        console.log(error);
-      },
-      onClose() {
-        console.log("widget is closing");
-      },
-    },
-    paymentPreference: [
-      "KHALTI",
-      "EBANKING",
-      "MOBILE_BANKING",
-      "CONNECT_IPS",
-      "SCT",
-    ],
-  };
-  let checkout = new KhaltiCheckout(Config);
-  const appointment = useSelector((state) => state.patient);
-  console.log(appointment.list.user_appointments);
-
-  React.useEffect(() => {
-    dispatch(getpatient());
-  }, [dispatch, id]);
-
-  React.useEffect(() => {
-    if (id && selectedInvoice) {
-      checkout.show({ amount: selectedInvoice * 100 });
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Pending":
+        return "#FFA500"; // Orange
+      case "Approved":
+        return "#4CAF50"; // Green
+      case "Rejected":
+        return "#F44336"; // Red
+      default:
+        return "#757575"; // Grey
     }
-  }, [id, selectedInvoice]);
+  };
+
+  const formatDate = (dateString) => {
+    try {
+      if (!dateString) return "Invalid date";
+      const date = new Date(dateString);
+      return format(date, "MMMM d, yyyy");
+    } catch (error) {
+      console.error("Date formatting error:", error);
+      return dateString;
+    }
+  };
+
+  // If user is not authenticated
+  if (!isAuthenticated) {
+    return (
+      <Container maxWidth="md" sx={{ py: 8 }}>
+        <Paper elevation={3} sx={{ p: 4, textAlign: "center" }}>
+          <Typography variant="h5" gutterBottom>
+            Authentication Required
+          </Typography>
+          <Typography variant="body1" paragraph>
+            You need to be logged in to view your appointments.
+          </Typography>
+          <Button
+            component={Link}
+            to="/login"
+            variant="contained"
+            color="primary"
+            sx={{ mt: 2 }}
+          >
+            Login to Continue
+          </Button>
+        </Paper>
+      </Container>
+    );
+  }
+
+  // Show loading state
+  if (loading) {
+    return (
+      <Container
+        maxWidth="md"
+        sx={{ py: 8, display: "flex", justifyContent: "center" }}
+      >
+        <CircularProgress />
+      </Container>
+    );
+  }
 
   return (
-    <>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box sx={{ mb: 4 }}>
+        <Typography
+          variant="h4"
+          gutterBottom
+          sx={{ fontWeight: "bold", color: "primary.main" }}
+        >
+          My Appointments
+        </Typography>
+        <Divider />
+      </Box>
 
-    <Grid container sx={{display:"flex" ,flexDirection:'column'}}>
-      <Grid item sx={{
-        marginTop:"20px",
-        marginBottom:"20px"
-      }}>
-      <Typography variant="h4" align="center" gutterBottom>
-            User DashBoard
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
+      {appointments.length === 0 ? (
+        <Paper
+          elevation={3}
+          sx={{ p: 4, textAlign: "center", borderRadius: 2 }}
+        >
+          <Typography variant="h6" gutterBottom>
+            No appointments found
           </Typography>
-      </Grid >
-      <Grid item>
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 600 }} aria-label="customized table">
-          <TableHead>
-            <TableRow>
-              <StyledTableCell>Doctors Name</StyledTableCell>
+          <Typography variant="body1" paragraph>
+            You haven't booked any appointments yet.
+          </Typography>
+          <Button
+            component={Link}
+            to="/doctor"
+            variant="contained"
+            color="primary"
+            sx={{ mt: 2 }}
+          >
+            Book an Appointment
+          </Button>
+        </Paper>
+      ) : (
+        <Grid container spacing={3}>
+          {appointments.map((appointment) => (
+            <Grid item xs={12} md={6} key={appointment._id}>
+              <Card
+                elevation={3}
+                sx={{
+                  borderRadius: 2,
+                  transition: "transform 0.3s",
+                  "&:hover": {
+                    transform: "translateY(-5px)",
+                  },
+                  height: "100%",
+                }}
+              >
+                <CardContent sx={{ p: 3 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      mb: 2,
+                    }}
+                  >
+                    <Typography variant="h5" component="h2" gutterBottom>
+                      {appointment.doctor && appointment.doctor.name
+                        ? appointment.doctor.name
+                        : "Doctor information not available"}
+                    </Typography>
+                    <Chip
+                      label={
+                        appointment.approved ? "Approved" : "Pending Approval"
+                      }
+                      sx={{
+                        bgcolor: getStatusColor(
+                          appointment.approved ? "Approved" : "Pending"
+                        ),
+                        color: "white",
+                        fontWeight: "bold",
+                      }}
+                    />
+                  </Box>
 
-              <StyledTableCell align="left">Disease</StyledTableCell>
-              <StyledTableCell align="left">Date</StyledTableCell>
-              {/* <StyledTableCell align="left">Status</StyledTableCell> */}
-              <StyledTableCell align="left">Invoice</StyledTableCell>
-              <StyledTableCell align="left">Pay Now</StyledTableCell>
-              <StyledTableCell align="left">Report</StyledTableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {appointment?.list?.user_appointments?.map((item) => (
-              <StyledTableRow key={item._id}>
-                <StyledTableCell align="left">
-                  {item?.doctor?.name}
-                </StyledTableCell>
-                <StyledTableCell align="left">{item?.disease}</StyledTableCell>
-                <StyledTableCell align="left">{moment.utc(item?.date).format('MM/DD/YYYY')}</StyledTableCell>
-                {/* <StyledTableCell align="left">{item?.status}</StyledTableCell> */}
-                <StyledTableCell align="left">{item?.doctor?.ammount}</StyledTableCell>
-                <StyledTableCell align="left">
-                
+                  <Box sx={{ mb: 2 }}>
+                    <Typography
+                      variant="body1"
+                      sx={{ fontWeight: "bold", color: "text.secondary" }}
+                    >
+                      Appointment Date:
+                    </Typography>
+                    <Typography variant="body1">
+                      {formatDate(appointment.date)}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ mb: 2 }}>
+                    <Typography
+                      variant="body1"
+                      sx={{ fontWeight: "bold", color: "text.secondary" }}
+                    >
+                      Medical Condition:
+                    </Typography>
+                    <Typography variant="body1">
+                      {appointment.disease}
+                    </Typography>
+                  </Box>
+
+                  {appointment.doctor && appointment.doctor.expertise && (
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="body1"
+                        sx={{ fontWeight: "bold", color: "text.secondary" }}
+                      >
+                        Doctor Specialization:
+                      </Typography>
                       <Box
                         sx={{
-                          display: "inline-block",
-                          backgroundColor: "purple",
-                          padding: " 0px 10px",
-                          color: "white",
-                          cursor: "pointer",
-                          fontWeight: "bold",
-                          border: "1px solid white",
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 1,
+                          mt: 1,
                         }}
                       >
-
-                { item?.payment !== "paid"
-                     ? (
-                           <button
-                           onClick={() => {
-                             // setId(item._id)
-                             // if(id)
-                             // {
-                             //   checkout.show({ amount: item.invoice * 100})
-                             // }
-                             setId(item?._id);
-                             setSelectedInvoice(item?.doctor?.ammount);
-                           }}
-                           style={{
-                             backgroundColor: "transparent",
-                             border: "none",
-                             color: "inherit",
-                             cursor: "inherit",
-                             padding: 0,
-                           }}
-                         >
-                           Pay Via Khalti
-                         </button>
-                        )  :( <Typography>paid</Typography>)
-                          }
-                       
+                        {appointment.doctor.expertise.map((item, index) => (
+                          <Chip
+                            key={index}
+                            label={item}
+                            size="small"
+                            sx={{
+                              bgcolor: "primary.light",
+                              color: "white",
+                            }}
+                          />
+                        ))}
                       </Box>
-                  
-                </StyledTableCell>
-                <StyledTableCell align="left">
-                  { item?.payment === "paid"
-                     ? (
-
-                      <Box
-                      sx={{
-                        display: "inline-block",
-                        backgroundColor: "purple",
-                        padding: "10px",
-                        color: "white",
-                        cursor: "pointer",
-                        fontWeight: "bold",
-                        border: "1px solid white",
-                      }}
-                    >
-                      <button
-
-                       onClickCapture={() => navigate(`/report/${item._id}`)
-                      }
-                        
-                        style={{
-                          backgroundColor: "transparent",
-                          border: "none",
-                          color: "inherit",
-                          cursor: "inherit",
-                          padding: 0,
-                        }}
-                      >
-                        Report
-                      </button>
                     </Box>
-                      
-                    ) : (
-                      <Typography>pending....</Typography>
-                    )
-                   }
-                </StyledTableCell>
-              </StyledTableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      </Grid>
-       
-    </Grid>
-     
-    </>
+                  )}
+
+                  <Box sx={{ mb: 2 }}>
+                    <Typography
+                      variant="body1"
+                      sx={{ fontWeight: "bold", color: "text.secondary" }}
+                    >
+                      Payment Status:
+                    </Typography>
+                    <Chip
+                      label={appointment.payment ? "Paid" : "Unpaid"}
+                      size="small"
+                      sx={{
+                        bgcolor: appointment.payment ? "#4CAF50" : "#FFA500",
+                        color: "white",
+                        fontWeight: "bold",
+                        mt: 1,
+                      }}
+                    />
+                  </Box>
+
+                  {!appointment.approved && !appointment.payment && (
+                    <Box sx={{ mt: 3 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontStyle: "italic", color: "text.secondary" }}
+                      >
+                        Your appointment is pending approval from the doctor.
+                      </Typography>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+    </Container>
   );
-}
+};
+
+export default AppointmentPage;

@@ -13,10 +13,29 @@ const appintments_schema = mongoose.Schema({
     },
     payment:{
         type:String,
+        enum: ['paid', 'unpaid'],
         default:'unpaid'
+    },
+    paymentDate: {
+        type: Date
+    },
+    paymentAmount: {
+        type: Number
+    },
+    paymentMethod: {
+        type: String,
+        enum: ['cash', 'card', 'upi', 'other'],
+    },
+    isApproved: {
+        type: Boolean,
+        default: false
+    },
+    approvedDate: {
+        type: Date
     },
     status: {
         type: String,
+        enum: ['pending', 'approved', 'rejected', 'completed', 'cancelled', 'unchecked'],
         default: "unchecked",
     },
     invoice: {
@@ -34,14 +53,28 @@ const appintments_schema = mongoose.Schema({
     },
     about:{
         type:String,
-
     },
     medicine:{
         type:[String]
     },
-   
-    
-
+    dosage: {
+        type: [String]
+    },
+    duration: {
+        type: [String]
+    },
+    instructions: {
+        type: [String]
+    },
+    followUpRequired: {
+        type: Boolean,
+        default: false
+    },
+    followUpDate: {
+        type: Date
+    }
+}, {
+    timestamps: true
 });
 
 

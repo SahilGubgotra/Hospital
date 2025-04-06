@@ -7,6 +7,12 @@ import { loginAsync } from "../slices/Loginslice";
 import { Form, Formik, Field, ErrorMessage } from "formik";
 import * as yup from "yup";
 import { Box } from "@mui/system";
+import axios from "axios";
+
+// Create a custom error component to ensure errors are rendered as strings
+const ErrorDisplay = ({ children }) => {
+  return <div>{children}</div>;
+};
 
 function LoginForm() {
   const dispatch = useDispatch();
@@ -23,24 +29,35 @@ function LoginForm() {
       const data = await dispatch(loginAsync(values));
 
       if (data.meta.requestStatus === "rejected") {
-        toast.error(data.payload.message);
+        toast.error(data.payload.message || "Login failed");
+        return;
       }
 
+      // Get token and admin status
       const token = localStorage.getItem("jwt");
       const is_admin = localStorage.getItem("is_admin");
-      if (token && is_admin === "false") {
-        navigate("/");
-        window.location.reload("true");
-        toast.success("login successfully");
-      }
-      if (token && is_admin === "true") {
-        navigate("/");
-        window.location.reload("true");
-
-        toast.success(" admin login successfully");
+      
+      // Ensure token has Bearer prefix
+      if (token) {
+        const tokenWithBearer = token.startsWith("Bearer ") 
+          ? token 
+          : `Bearer ${token}`;
+        
+        localStorage.setItem("jwt", tokenWithBearer);
+        console.log("Token stored with Bearer prefix:", tokenWithBearer);
+        
+        if (is_admin === "false") {
+          navigate("/");
+          window.location.reload();
+          toast.success("Login successful");
+        } else if (is_admin === "true") {
+          navigate("/");
+          window.location.reload();
+          toast.success("Admin login successful");
+        }
       }
     } catch (error) {
-      toast.error(error);
+      toast.error(error.message || "An error occurred");
     }
   };
 
@@ -72,11 +89,7 @@ function LoginForm() {
           onSubmit={onSubmit}
         >
           <Form>
-            <Grid sx={{
-              
-            
-
-            }} container spacing={2}>
+            <Grid container spacing={2}>
               <Grid item xs={12}>
                 <Field
                   as={TextField}
@@ -86,11 +99,8 @@ function LoginForm() {
                   name="username"
                   fullWidth
                 />
-                <Box
-
-                  sx={{ color: "red" }}
-                >
-                  <ErrorMessage name="username" />
+                <Box sx={{ color: "red" }}>
+                  <ErrorMessage name="username" component={ErrorDisplay} />
                 </Box>
                 
               </Grid>
@@ -104,7 +114,7 @@ function LoginForm() {
                   fullWidth
                 />
                 <Box sx={{ color: "red" }}>
-                  <ErrorMessage name="password" />  
+                  <ErrorMessage name="password" component={ErrorDisplay} />  
                 </Box>
               
               </Grid>

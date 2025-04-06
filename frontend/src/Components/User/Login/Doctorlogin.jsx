@@ -3,11 +3,15 @@ import { TextField, Button, Grid, Typography, Container } from "@mui/material";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { loginAsync } from "../slices/Loginslice";
+import { doctorloginAsync } from "../slices/Loginslice";
 import { Form, Formik, Field, ErrorMessage } from "formik";
 import * as yup from "yup";
 import { Box } from "@mui/system";
-import axios from "axios";
+
+// Create a custom error component to ensure errors are rendered as strings
+const ErrorDisplay = ({ children }) => {
+  return <div>{children}</div>;
+};
 
 function LoginForm() {
   const dispatch = useDispatch();
@@ -19,115 +23,108 @@ function LoginForm() {
   };
 
   const onSubmit = async (values) => {
-    // console.log(values);
     try {
-        const response= await axios.post ("http://localhost:8080/doctorsignin",values)
-        console.log(response.data)
+      // console.log(values);
+      const data = await dispatch(doctorloginAsync(values));
+
+      if (data.meta.requestStatus === "rejected") {
+        toast.error(data.payload.message || "Login failed");
+        return;
+      }
+
+      // Get doctor token 
+      const doctorToken = localStorage.getItem("doctortoken");
+      const is_doctor = localStorage.getItem("is_doctor");
+      
+      // Ensure token has Bearer prefix
+      if (doctorToken && is_doctor) {
+        const tokenWithBearer = doctorToken.startsWith("Bearer ") 
+          ? doctorToken 
+          : `Bearer ${doctorToken}`;
         
-        if(response.status===200){
-            localStorage.setItem("jwt",response.data.token)
-            localStorage.setItem("user",JSON.stringify(response.data.user))
-            localStorage.setItem("is_doctor",response.data.user.is_doctor)
-            if(response.data.user.is_doctor===true){
-                toast.success("login successfully")
-                
-                navigate("/")
-                window.location.reload("true")
-            }
-
-        }
-        else{
-            toast.error("login failed")
-        }
-
-
+        localStorage.setItem("doctortoken", tokenWithBearer);
+        console.log("Doctor token stored with Bearer prefix:", tokenWithBearer);
+        
+        navigate("/");
+        window.location.reload();
+        toast.success("Doctor login successful");
+      }
+    } catch (error) {
+      toast.error(error.message || "An error occurred");
     }
-    catch(error){
-        console.log(error.message)
-    }   
-
-    
   };
 
   const validationSchema = yup.object({
-    email: yup.string().required("email must be required"),
-    password: yup.string().required("Password must be required"),
+    email: yup.string().email("Invalid email").required("Email is required"),
+    password: yup.string().required("Password is required"),
   });
 
   return (
     <>
-    <Box >
-      <Container
-        maxWidth="xs"
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          flexDirection: "column",
-          minHeight: "70vh",
-          marginTop:"100px"
-        }}
-      >
-        <Typography variant="h4" align="center" gutterBottom>
-           Doctor Login
-        </Typography>
-        <Formik
-          initialValues={initialValues}
-          validationSchema={validationSchema}
-          onSubmit={onSubmit}
+      <Box>
+        <Container
+          maxWidth="xs"
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            flexDirection: "column",
+            minHeight: "70vh",
+            marginTop: "100px"
+          }}
         >
-          <Form>
-            <Grid sx={{
-              
-            
-
-            }} container spacing={2}>
-              <Grid item xs={12}>
-                <Field
-                  as={TextField}
-                  type="text"
-                  label="email"
-                  variant="outlined"
-                  name="email"
-                  fullWidth
-                />
-                <Box
-
-                  sx={{ color: "red" }}
-                >
-                  <ErrorMessage name="email" />
-                </Box>
+          <Typography variant="h4" align="center" gutterBottom>
+            Doctor Login
+          </Typography>
+          <Formik
+            initialValues={initialValues}
+            validationSchema={validationSchema}
+            onSubmit={onSubmit}
+          >
+            <Form>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Field
+                    as={TextField}
+                    type="text"
+                    label="Email"
+                    variant="outlined"
+                    name="email"
+                    fullWidth
+                  />
+                  <Box sx={{ color: "red" }}>
+                    <ErrorMessage name="email" component={ErrorDisplay} />
+                  </Box>
+                </Grid>
                 
-              </Grid>
-              <Grid item xs={12}>
-                <Field
-                  as={TextField}
-                  type="password"
-                  label="Password"
-                  variant="outlined"
-                  name="password"
-                  fullWidth
-                />
-                <Box sx={{ color: "red" }}>
-                  <ErrorMessage name="password" />  
-                </Box>
-              
-              </Grid>
+                <Grid item xs={12}>
+                  <Field
+                    as={TextField}
+                    type="password"
+                    label="Password"
+                    variant="outlined"
+                    name="password"
+                    fullWidth
+                  />
+                  <Box sx={{ color: "red" }}>
+                    <ErrorMessage name="password" component={ErrorDisplay} />
+                  </Box>
+                </Grid>
 
-              <Grid item xs={12}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  fullWidth
-                >
-                  Login
-                </Button>
+                <Grid item xs={12}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                  >
+                    Login
+                  </Button>
+                </Grid>
               </Grid>
-            </Grid>
-          </Form>
-        </Formik>
-      </Container>
+            </Form>
+          </Formik>
+        </Container>
       </Box>
     </>
   );

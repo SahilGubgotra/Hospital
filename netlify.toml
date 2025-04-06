@@ -1,5 +1,5 @@
 [build]
-  base = "Hospital-management-system-MERN-stack/frontend"
+  base = "frontend"
   publish = "build"
   command = "CI=false npm run build"
 

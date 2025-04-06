@@ -84,6 +84,32 @@ A modern Hospital Management Dashboard built with the MERN stack (MongoDB, Expre
    ```
    The application will open in your browser at http://localhost:3000
 
+## Deploying to Netlify
+
+This project is configured for easy deployment to Netlify. Follow these steps:
+
+1. **Prepare your backend**
+   - Deploy your backend API to a service like Heroku, Render, or Railway
+   - Make note of your deployed backend URL (e.g., https://hospital-api.herokuapp.com)
+
+2. **Deploy to Netlify via GitHub**
+   - Log in to [Netlify](https://www.netlify.com/)
+   - Click "New site from Git"
+   - Select GitHub and authorize Netlify
+   - Select your repository
+   - Configure build settings:
+     - Base directory: `Hospital-management-system-MERN-stack/frontend`
+     - Build command: `npm run build`
+     - Publish directory: `build`
+   - Click "Show advanced" and add environment variable:
+     - Key: `REACT_APP_API_URL`
+     - Value: Your deployed backend URL
+   - Click "Deploy site"
+
+3. **Verify the deployment**
+   - Netlify will provide a URL for your site (e.g., https://your-hospital-app.netlify.app)
+   - Test all functionality to ensure it's working with your backend
+
 ## API Documentation
 
 The API provides the following endpoints:

@@ -1,7 +1,13 @@
 [build]
-  base = "frontend"
+  base = "Hospital-management-system-MERN-stack/frontend"
   publish = "build"
-  command = "npm run build"
+  command = "CI=false npm run build"
+
+[build.environment]
+  CI = "false"
+  NETLIFY = "true"
+  BROWSERSLIST_IGNORE_OLD_DATA = "true"
+  NODE_VERSION = "16"
 
 [[redirects]]
   from = "/*"
